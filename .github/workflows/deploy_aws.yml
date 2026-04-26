@@ -1,0 +1,56 @@
+name: Tienda Perritos
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-backend:
+    runs-on: [self-hosted, ec2-back]
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Build imagen backend
+        run: |
+          docker build -t tienda-backend:latest ./backend
+
+      - name: Deploy contenedor backend
+        run: |
+          docker stop tienda-backend || true
+          docker rm tienda-backend || true
+          docker run -d \
+            --name tienda-backend \
+            -p 3001:3001 \
+            -e DB_HOST=${{ secrets.DB_HOST }} \
+            -e DB_USER=${{ secrets.DB_USER }} \
+            -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            -e DB_NAME=${{ secrets.DB_NAME }} \
+            -e DB_PORT=3306 \
+            --restart unless-stopped \
+            tienda-backend:latest
+
+  deploy-frontend:
+    runs-on: [self-hosted, ec2-front]
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Build imagen frontend
+        run: |
+          docker build -t tienda-frontend:latest ./frontend
+
+      - name: Deploy contenedor frontend
+        run: |
+          docker stop tienda-frontend || true
+          docker rm tienda-frontend || true
+          docker run -d \
+            --name tienda-frontend \
+            -p 80:80 \
+            --restart unless-stopped \
+            tienda-frontend:latest
+
+
+
+  # deploy-db:        <- base de datos
